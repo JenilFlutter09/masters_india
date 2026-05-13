@@ -1,0 +1,83 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+
+import 'package:mastersindia/features/dashboard/presentation/dashboard_controller.dart';
+import 'package:mastersindia/features/dashboard/presentation/dashboard_screen.dart';
+
+import 'helpers/test_services.dart';
+
+void main() {
+  testWidgets('dashboard renders operation sections and welcome content', (
+    tester,
+  ) async {
+    await bootstrapTestBindings();
+    final context = await createTestContext();
+    context.authService.userEmail.value = 'admin@example.com';
+    context.authService.userName.value = 'Admin User';
+
+    final repository = FakeInventoryRepository(
+      apiClient: context.apiClient,
+      appConfigService: context.appConfigService,
+    );
+
+    Get.put(
+      DashboardController(
+        inventoryRepository: repository,
+        inventoryCacheService: context.inventoryCacheService,
+        authService: context.authService,
+      ),
+    );
+
+    await tester.pumpWidget(const MaterialApp(home: DashboardScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Inventory Dashboard'), findsOneWidget);
+    expect(find.text('Welcome, Admin User'), findsOneWidget);
+    expect(find.text('Primary Operations'), findsOneWidget);
+    expect(find.text('Truck Entry'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('support operations keeps a two-column grid on tablet layout', (
+    tester,
+  ) async {
+    await bootstrapTestBindings();
+    final context = await createTestContext();
+    context.authService.userEmail.value = 'admin@example.com';
+    context.authService.userName.value = 'Admin User';
+
+    final repository = FakeInventoryRepository(
+      apiClient: context.apiClient,
+      appConfigService: context.appConfigService,
+    );
+
+    Get.put(
+      DashboardController(
+        inventoryRepository: repository,
+        inventoryCacheService: context.inventoryCacheService,
+        authService: context.authService,
+      ),
+    );
+
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const MaterialApp(home: DashboardScreen()));
+    await tester.pumpAndSettle();
+
+    final firstTilePosition = tester.getTopLeft(
+      find.text('Mother Coil Dispatch'),
+    );
+    final secondTilePosition = tester.getTopLeft(find.text('Baby Inward'));
+
+    expect(firstTilePosition.dy, secondTilePosition.dy);
+    expect(secondTilePosition.dx, greaterThan(firstTilePosition.dx));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+}
