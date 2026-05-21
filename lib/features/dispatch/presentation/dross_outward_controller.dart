@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/app_exception.dart';
 import '../../../core/utils/api_date_time_formatter.dart';
 import '../../../core/utils/form_validators.dart';
+import '../../workflow/presentation/gross_tare_net_workflow_mixin.dart';
 import '../../workflow/presentation/workflow_form_controller.dart';
 
-class DrossOutwardController extends WorkflowFormController {
+class DrossOutwardController extends WorkflowFormController
+    with GrossTareNetWorkflowMixin {
   DrossOutwardController({
     required super.workflowRepository,
     required super.scaleService,
@@ -35,18 +38,22 @@ class DrossOutwardController extends WorkflowFormController {
   Map<String, dynamic> buildPayload() {
     return {
       'dross_inward_id': int.parse(drossInwardIdController.text.trim()),
-      'outward_weight': enteredWeight,
+      'outward_weight': netWeight,
       'recorded_at': recordedAtController.text.trim(),
     };
   }
 
   @override
-  Future<Map<String, dynamic>> submitWorkflow(Map<String, dynamic> payload) =>
-      workflowRepository.drossOutward(payload);
+  Future<Map<String, dynamic>> submitWorkflow(Map<String, dynamic> payload) {
+    throw const AppException(
+      'Dross outward is not part of the current API contract. Please use the supported outbound workflow configured for finished goods dispatch.',
+    );
+  }
 
   @override
   void disposeControllers() {
     drossInwardIdController.dispose();
     recordedAtController.dispose();
+    disposeGrossTareNetControllers();
   }
 }

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/app_dropdown_field.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/status_banner.dart';
 import '../../../shared/widgets/submission_result_card.dart';
-import '../../../shared/widgets/weight_capture_card.dart';
+import '../../../shared/widgets/weighbridge_weight_panel.dart';
+import '../../../shared/widgets/workflow_field_rows.dart';
 import '../../../shared/widgets/workflow_screen_shell.dart';
 import 'baby_inward_controller.dart';
 
@@ -18,11 +21,15 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Baby Inward')),
+      appBar: const CustomAppBar(title: 'Baby Inward'),
       body: Obx(
         () => LoadingOverlay(
-          visible: controller.isSubmitting.value,
-          message: 'Creating baby inward...',
+          visible:
+              controller.isLoadingMasters.value ||
+              controller.isSubmitting.value,
+          message: controller.isSubmitting.value
+              ? 'Creating baby inward...'
+              : 'Loading options...',
           child: Form(
             key: controller.formKey,
             child: WorkflowScreenShell(
@@ -40,43 +47,113 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
                     message: controller.successMessage.value!,
                     isError: false,
                   ),
+                if (controller.isLoadingMasters.value)
+                  const LinearProgressIndicator(),
               ],
-              leftPanel: WeightCaptureCard(controller: controller),
+              leftPanel: WeighbridgeWeightPanel(
+                title: 'Baby Inward Weight Station',
+                subtitle:
+                    'Capture gross and tare for the baby inward item here. Net weight is submitted after deduction.',
+                scaleStatus: controller.scaleStatus,
+                isScaleConnected: controller.scaleService.isScaleConnected,
+                printerStatus: controller.printerStatus,
+                liveReading: controller.liveReading.value,
+                grossWeightController: controller.grossWeightController,
+                tareWeightController: controller.tareWeightController,
+                onCaptureGross: controller.captureGrossWeight,
+                onCaptureTare: controller.captureTareWeight,
+                grossValidator: (value) =>
+                    controller.validateRequiredWeightValue(
+                      value,
+                      'Gross weight',
+                    ),
+                tareValidator: (value) =>
+                    controller.validateOptionalWeightValue(
+                      value,
+                      'Tare weight',
+                    ),
+              ),
               rightPanel: SectionCard(
                 title: 'Item Details',
                 subtitle:
-                    'Confirm which mother coil is being converted and when the item and label were produced.',
-                child: Column(
-                  children: [
-                    AppTextField(
-                      label: 'Mother Coil ID',
-                      controller: controller.motherCoilIdController,
-                      keyboardType: TextInputType.number,
-                      validator: (value) => controller.validateIntegerValue(
-                        value,
-                        'Mother coil ID',
+                    'Confirm which mother coil is being converted, choose the baby product, and capture any product parameters before saving.',
+                child: WorkflowFieldRows(
+                  rows: [
+                    [
+                      AppDropdownField(
+                        label: 'Available Mother Coil',
+                        options: controller.availableMotherCoils,
+                        value: controller.selectedMotherCoilId.value,
+                        onChanged: controller.onMotherCoilChanged,
+                        validator: (value) => controller.validateSelection(
+                          value,
+                          'Available mother coil',
+                        ),
                       ),
-                    ),
-                    AppTextField(
-                      label: 'Item Type',
-                      controller: controller.itemTypeController,
-                      validator: (value) =>
-                          controller.validateText(value, 'Item type'),
-                    ),
-                    AppTextField(
-                      label: 'Created On',
-                      controller: controller.createdOnController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Created on'),
-                    ),
-                    AppTextField(
-                      label: 'Label Printed At',
-                      controller: controller.labelPrintedAtController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Label printed at'),
-                    ),
+                      AppTextField(
+                        label: 'Item Type',
+                        controller: controller.itemTypeController,
+                        validator: (value) =>
+                            controller.validateText(value, 'Item type'),
+                      ),
+                    ],
+                    [
+                      AppTextField(
+                        label: 'Mother Coil ID',
+                        controller: controller.motherCoilIdController,
+                        readOnly: true,
+                        validator: (value) => controller.validateIntegerValue(
+                          value,
+                          'Mother coil ID',
+                        ),
+                      ),
+                      AppDropdownField(
+                        label: 'Baby Product',
+                        options: controller.babyProducts,
+                        value: controller.selectedBabyProductId.value,
+                        onChanged: controller.onBabyProductChanged,
+                        validator: (value) =>
+                            controller.validateSelection(value, 'Baby product'),
+                      ),
+                    ],
+                    [
+                      AppTextField(
+                        label: 'Created On',
+                        controller: controller.createdOnController,
+                        readOnly: true,
+                        validator: (value) =>
+                            controller.validateText(value, 'Created on'),
+                      ),
+                      AppTextField(
+                        label: 'Label Printed At',
+                        controller: controller.labelPrintedAtController,
+                        readOnly: true,
+                        validator: (value) =>
+                            controller.validateText(value, 'Label printed at'),
+                      ),
+                    ],
+                    for (
+                      var index = 0;
+                      index < controller.parameterKeys.length;
+                      index += 2
+                    )
+                      [
+                        AppTextField(
+                          label: controller.parameterKeys[index],
+                          controller:
+                              controller.parameterControllers[controller
+                                  .parameterKeys[index]]!,
+                        ),
+                        if (index + 1 < controller.parameterKeys.length)
+                          AppTextField(
+                            label: controller.parameterKeys[index + 1],
+                            controller:
+                                controller.parameterControllers[controller
+                                    .parameterKeys[index + 1]]!,
+                          )
+                        else
+                          const SizedBox.shrink(),
+                      ],
                   ],
                 ),
               ),

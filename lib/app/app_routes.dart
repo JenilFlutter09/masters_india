@@ -5,7 +5,6 @@ abstract final class AppRoutes {
   static const truckExit = '/truck-exit';
   static const scrapWeighing = '/scrap-weighing';
   static const drossWeighing = '/dross-weighing';
-  static const lineInput = '/line-input';
   static const lineOutput = '/line-output';
   static const motherCoilDispatch = '/mother-coil-dispatch';
   static const babyInward = '/baby-inward';

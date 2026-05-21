@@ -5,9 +5,11 @@ import '../../../core/models/master_option.dart';
 import '../../../core/utils/api_date_time_formatter.dart';
 import '../../../core/utils/form_validators.dart';
 import '../../workflow/data/master_data_repository.dart';
+import '../../workflow/presentation/gross_tare_net_workflow_mixin.dart';
 import '../../workflow/presentation/workflow_form_controller.dart';
 
-class BabyProductDispatchController extends WorkflowFormController {
+class BabyProductDispatchController extends WorkflowFormController
+    with GrossTareNetWorkflowMixin {
   BabyProductDispatchController({
     required super.workflowRepository,
     required super.scaleService,
@@ -17,6 +19,7 @@ class BabyProductDispatchController extends WorkflowFormController {
   final masterDataRepository = Get.find<MasterDataRepository>();
 
   final barcodeController = TextEditingController();
+  final barcodeFocusNode = FocusNode();
   final dispatchedAtController = TextEditingController(
     text: ApiDateTimeFormatter.now(),
   );
@@ -59,20 +62,23 @@ class BabyProductDispatchController extends WorkflowFormController {
   @override
   Map<String, dynamic> buildPayload() {
     return {
+      'dispatch_type': 'baby_product',
       'barcode': barcodeController.text.trim(),
       'customer_id': selectedCustomerId.value,
-      'dispatch_weight': enteredWeight,
+      'dispatch_weight': netWeight,
       'dispatched_at': dispatchedAtController.text.trim(),
     };
   }
 
   @override
   Future<Map<String, dynamic>> submitWorkflow(Map<String, dynamic> payload) =>
-      workflowRepository.dispatchBabyProduct(payload);
+      workflowRepository.dispatch(payload);
 
   @override
   void disposeControllers() {
     barcodeController.dispose();
     dispatchedAtController.dispose();
+    barcodeFocusNode.dispose();
+    disposeGrossTareNetControllers();
   }
 }

@@ -21,31 +21,20 @@ class WorkflowRepository {
     Map<String, dynamic> payload,
   ) => _postWorkflow('/workflow/weighbridge-outbound', payload);
 
-  Future<Map<String, dynamic>> scrapToFurnace(Map<String, dynamic> payload) =>
-      _postWorkflow('/workflow/scrap-to-furnace', payload);
+  Future<Map<String, dynamic>> scrapWeighing(Map<String, dynamic> payload) =>
+      _postWorkflow('/workflow/scrap-weighing', payload);
 
   Future<Map<String, dynamic>> furnaceOutput(Map<String, dynamic> payload) =>
       _postWorkflow('/workflow/furnace-output', payload);
 
-  Future<Map<String, dynamic>> dispatchMotherCoil(
-    Map<String, dynamic> payload,
-  ) => _postWorkflow('/workflow/dispatch/mother-coil', payload);
+  Future<Map<String, dynamic>> dispatch(Map<String, dynamic> payload) =>
+      _postWorkflow('/workflow/dispatch', payload);
 
   Future<Map<String, dynamic>> babyInward(Map<String, dynamic> payload) =>
       _postWorkflow('/workflow/baby-inward', payload);
 
-  Future<Map<String, dynamic>> dispatchBabyProduct(
-    Map<String, dynamic> payload,
-  ) => _postWorkflow('/workflow/dispatch/baby-product', payload);
-
-  Future<Map<String, dynamic>> scrapGeneration(Map<String, dynamic> payload) =>
-      _postWorkflow('/workflow/scrap-generation', payload);
-
   Future<Map<String, dynamic>> drossInward(Map<String, dynamic> payload) =>
       _postWorkflow('/workflow/dross-inward', payload);
-
-  Future<Map<String, dynamic>> drossOutward(Map<String, dynamic> payload) =>
-      _postWorkflow('/workflow/dross-outward', payload);
 
   Future<Map<String, dynamic>> _postWorkflow(
     String path,

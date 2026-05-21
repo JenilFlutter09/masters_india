@@ -22,7 +22,10 @@ class InventoryRepository {
 
   Future<InventorySnapshot> fetchInventorySummary() async {
     final response = await _apiClient.get('/workflow/inventory-summary');
-    final balances = (response['data'] as List<dynamic>? ?? const [])
+    final data = response['data'] is Map
+        ? (response['data'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final balances = (data['bucket_summary'] as List<dynamic>? ?? const [])
         .whereType<Map>()
         .map(
           (item) =>

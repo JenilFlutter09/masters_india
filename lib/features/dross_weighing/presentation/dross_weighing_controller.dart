@@ -5,9 +5,11 @@ import '../../../core/models/master_option.dart';
 import '../../../core/utils/api_date_time_formatter.dart';
 import '../../../core/utils/form_validators.dart';
 import '../../workflow/data/master_data_repository.dart';
+import '../../workflow/presentation/gross_tare_net_workflow_mixin.dart';
 import '../../workflow/presentation/workflow_form_controller.dart';
 
-class DrossWeighingController extends WorkflowFormController {
+class DrossWeighingController extends WorkflowFormController
+    with GrossTareNetWorkflowMixin {
   DrossWeighingController({
     required super.workflowRepository,
     required super.scaleService,
@@ -70,8 +72,7 @@ class DrossWeighingController extends WorkflowFormController {
     return {
       'production_line_id': selectedProductionLineId.value,
       'dross_type': selectedDrossType.value,
-      'weight': enteredWeight,
-      'recorded_at': recordedAtController.text.trim(),
+      'weight': netWeight,
     };
   }
 
@@ -96,5 +97,6 @@ class DrossWeighingController extends WorkflowFormController {
   @override
   void disposeControllers() {
     recordedAtController.dispose();
+    disposeGrossTareNetControllers();
   }
 }

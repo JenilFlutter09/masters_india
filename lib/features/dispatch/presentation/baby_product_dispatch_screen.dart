@@ -4,11 +4,14 @@ import 'package:get/get.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/app_dropdown_field.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/status_banner.dart';
 import '../../../shared/widgets/submission_result_card.dart';
-import '../../../shared/widgets/weight_capture_card.dart';
+import '../../../shared/widgets/weighbridge_weight_panel.dart';
+import '../../../shared/widgets/workflow_field_rows.dart';
+import '../../../shared/widgets/workflow_info_field.dart';
 import '../../../shared/widgets/workflow_screen_shell.dart';
 import 'baby_product_dispatch_controller.dart';
 
@@ -19,7 +22,7 @@ class BabyProductDispatchScreen extends GetView<BabyProductDispatchController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Baby Product Dispatch')),
+      appBar: const CustomAppBar(title: 'Baby Product Dispatch'),
       body: Obx(
         () => LoadingOverlay(
           visible:
@@ -48,33 +51,70 @@ class BabyProductDispatchScreen extends GetView<BabyProductDispatchController> {
                 if (controller.isLoadingMasters.value)
                   const LinearProgressIndicator(),
               ],
-              leftPanel: WeightCaptureCard(controller: controller),
+              leftPanel: WeighbridgeWeightPanel(
+                title: 'Dispatch Weight Station',
+                subtitle:
+                    'Capture gross and tare for the dispatch load here. The dispatch API receives the calculated net weight.',
+                scaleStatus: controller.scaleStatus,
+                isScaleConnected: controller.scaleService.isScaleConnected,
+                printerStatus: controller.printerStatus,
+                liveReading: controller.liveReading.value,
+                grossWeightController: controller.grossWeightController,
+                tareWeightController: controller.tareWeightController,
+                onCaptureGross: controller.captureGrossWeight,
+                onCaptureTare: controller.captureTareWeight,
+                grossValidator: (value) =>
+                    controller.validateRequiredWeightValue(
+                      value,
+                      'Gross weight',
+                    ),
+                tareValidator: (value) =>
+                    controller.validateOptionalWeightValue(
+                      value,
+                      'Tare weight',
+                    ),
+              ),
               rightPanel: SectionCard(
                 title: 'Dispatch Details',
-                subtitle: 'Use a scanned or manually entered barcode in v1.',
-                child: Column(
-                  children: [
-                    AppTextField(
-                      label: 'Barcode',
-                      controller: controller.barcodeController,
-                      validator: (value) =>
-                          controller.validateText(value, 'Barcode'),
-                    ),
-                    AppDropdownField(
-                      label: 'Customer',
-                      options: controller.customers,
-                      value: controller.selectedCustomerId.value,
-                      onChanged: controller.selectedCustomerId.call,
-                      validator: (value) =>
-                          controller.validateSelection(value, 'Customer'),
-                    ),
-                    AppTextField(
-                      label: 'Dispatched At',
-                      controller: controller.dispatchedAtController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Dispatched at'),
-                    ),
+                subtitle:
+                    'Scan the product barcode to identify the item quickly, then select the customer and confirm dispatch.',
+                child: WorkflowFieldRows(
+                  rows: [
+                    [
+                      AppTextField(
+                        label: 'Barcode',
+                        controller: controller.barcodeController,
+                        focusNode: controller.barcodeFocusNode,
+                        autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        hintText: 'Scan barcode from the dispatched product',
+                        suffixIcon: const Icon(Icons.qr_code_scanner_rounded),
+                        validator: (value) =>
+                            controller.validateText(value, 'Barcode'),
+                      ),
+                      AppDropdownField(
+                        label: 'Customer',
+                        options: controller.customers,
+                        value: controller.selectedCustomerId.value,
+                        onChanged: controller.selectedCustomerId.call,
+                        validator: (value) =>
+                            controller.validateSelection(value, 'Customer'),
+                      ),
+                    ],
+                    [
+                      AppTextField(
+                        label: 'Dispatched At',
+                        controller: controller.dispatchedAtController,
+                        readOnly: true,
+                        validator: (value) =>
+                            controller.validateText(value, 'Dispatched at'),
+                      ),
+                      const WorkflowInfoField(
+                        label: 'Dispatch Mode',
+                        value:
+                            'Scan the product barcode first, then confirm the customer.',
+                      ),
+                    ],
                   ],
                 ),
               ),

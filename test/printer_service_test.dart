@@ -21,8 +21,8 @@ void main() {
     );
     final motherCoilLabel = printer.buildMotherCoilLabel(
       request: {
-        'production_type': 'Rod',
-        'issue_weight': 540,
+        'mother_coil_product_name': 'Rod',
+        'gross_weight': 540,
         'metal_alloy_id': 3,
       },
       response: {

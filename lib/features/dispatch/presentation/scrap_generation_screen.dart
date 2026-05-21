@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/app_dropdown_field.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/status_banner.dart';
 import '../../../shared/widgets/submission_result_card.dart';
-import '../../../shared/widgets/weight_capture_card.dart';
+import '../../../shared/widgets/weighbridge_weight_panel.dart';
+import '../../../shared/widgets/workflow_field_rows.dart';
 import '../../../shared/widgets/workflow_screen_shell.dart';
 import 'scrap_generation_controller.dart';
 
@@ -19,7 +21,7 @@ class ScrapGenerationScreen extends GetView<ScrapGenerationController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Scrap Generation')),
+      appBar: const CustomAppBar(title: 'Scrap Generation'),
       body: Obx(
         () => LoadingOverlay(
           visible:
@@ -48,44 +50,72 @@ class ScrapGenerationScreen extends GetView<ScrapGenerationController> {
                 if (controller.isLoadingMasters.value)
                   const LinearProgressIndicator(),
               ],
-              leftPanel: WeightCaptureCard(controller: controller),
+              leftPanel: WeighbridgeWeightPanel(
+                title: 'Return Weight Station',
+                subtitle:
+                    'Capture gross and tare for the return scrap here. Net weight is posted back to the yard movement.',
+                scaleStatus: controller.scaleStatus,
+                isScaleConnected: controller.scaleService.isScaleConnected,
+                printerStatus: controller.printerStatus,
+                liveReading: controller.liveReading.value,
+                grossWeightController: controller.grossWeightController,
+                tareWeightController: controller.tareWeightController,
+                onCaptureGross: controller.captureGrossWeight,
+                onCaptureTare: controller.captureTareWeight,
+                grossValidator: (value) =>
+                    controller.validateRequiredWeightValue(
+                      value,
+                      'Gross weight',
+                    ),
+                tareValidator: (value) =>
+                    controller.validateOptionalWeightValue(
+                      value,
+                      'Tare weight',
+                    ),
+              ),
               rightPanel: SectionCard(
                 title: 'Return Details',
                 subtitle:
-                    'Choose the production line, reference furnace output, and note any return context before saving.',
-                child: Column(
-                  children: [
-                    AppDropdownField(
-                      label: 'Production Line',
-                      options: controller.productionLines,
-                      value: controller.selectedProductionLineId.value,
-                      onChanged: controller.selectedProductionLineId.call,
-                      validator: (value) => controller.validateSelection(
-                        value,
-                        'Production line',
+                    'Send scrap back to the yard by choosing the line, operator, and raw material variant for this return movement.',
+                child: WorkflowFieldRows(
+                  rows: [
+                    [
+                      AppDropdownField(
+                        label: 'Staff',
+                        options: controller.staffMembers,
+                        value: controller.selectedStaffId.value,
+                        onChanged: controller.selectedStaffId.call,
+                        validator: (value) =>
+                            controller.validateSelection(value, 'Staff'),
                       ),
-                    ),
-                    AppTextField(
-                      label: 'Furnace Output ID',
-                      controller: controller.furnaceOutputIdController,
-                      keyboardType: TextInputType.number,
-                      validator: (value) => controller.validateIntegerValue(
-                        value,
-                        'Furnace output ID',
+                      AppDropdownField(
+                        label: 'Production Line',
+                        options: controller.productionLines,
+                        value: controller.selectedProductionLineId.value,
+                        onChanged: controller.selectedProductionLineId.call,
+                        validator: (value) => controller.validateSelection(
+                          value,
+                          'Production line',
+                        ),
                       ),
-                    ),
-                    AppTextField(
-                      label: 'Remarks',
-                      controller: controller.remarksController,
-                      maxLines: 3,
-                    ),
-                    AppTextField(
-                      label: 'Recorded At',
-                      controller: controller.recordedAtController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Recorded at'),
-                    ),
+                    ],
+                    [
+                      AppDropdownField(
+                        label: 'Raw Material',
+                        options: controller.rawMaterials,
+                        value: controller.selectedRawMaterialChoiceId.value,
+                        onChanged: controller.selectedRawMaterialChoiceId.call,
+                        validator: (value) =>
+                            controller.validateSelection(value, 'Raw material'),
+                      ),
+                      AppTextField(
+                        label: 'Recorded At',
+                        controller: controller.recordedAtController,
+                        readOnly: true,
+                        validator: (value) =>
+                            controller.validateText(value, 'Recorded at'),
+                      ),
+                    ],
                   ],
                 ),
               ),

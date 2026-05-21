@@ -40,6 +40,8 @@ class BluetoothEndpoint {
       ? storageService.scaleName
       : storageService.printerName;
 
+  bool get supportsClassicConnection => role == DeviceRole.scale;
+
   Future<void> initialize() async {
     await _ensurePermissions();
     isBluetoothEnabled.value = await bluetooth.isBluetoothEnabled();
@@ -55,7 +57,9 @@ class BluetoothEndpoint {
       }
     });
     _dataSubscription = bluetooth.onDataReceived.listen(_dataController.add);
-    await reconnectSaved();
+    if (supportsClassicConnection) {
+      await reconnectSaved();
+    }
   }
 
   Future<void> _ensurePermissions() async {
@@ -101,6 +105,13 @@ class BluetoothEndpoint {
     BluetoothDevice device, {
     bool persistSelection = true,
   }) async {
+    if (!supportsClassicConnection) {
+      if (persistSelection) {
+        await saveSelection(device);
+      }
+      status.value = 'Selected ${device.name}';
+      return true;
+    }
     final result = await bluetooth.connect(device.address);
     if (result) {
       connectedDevice.value = device;

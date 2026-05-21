@@ -58,9 +58,25 @@ class SettingsController extends GetxController {
     feedback.value = 'Scale connected to ${device.name}.';
   }
 
+  Future<void> disconnectScale() async {
+    final success = await scaleEndpoint.disconnect();
+    feedback.value = success
+        ? 'Scale disconnected.'
+        : 'Failed to disconnect scale.';
+  }
+
   Future<void> connectPrinter(BluetoothDevice device) async {
-    await printerEndpoint.connect(device);
-    feedback.value = 'Printer connected to ${device.name}.';
+    final success = await printerService.connectPrinter(device);
+    feedback.value = success
+        ? 'Printer connected to ${device.name}.'
+        : 'Failed to connect printer to ${device.name}.';
+  }
+
+  Future<void> disconnectPrinter() async {
+    final success = await printerService.disconnectPrinter();
+    feedback.value = success
+        ? 'Printer disconnected.'
+        : 'Failed to disconnect printer.';
   }
 
   Future<void> testPrint() async {
@@ -84,6 +100,12 @@ class SettingsController extends GetxController {
   Future<void> logout() async {
     await _authService.logout();
     Get.offAllNamed(AppRoutes.login);
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    printerService.refreshStatus(showDisconnectedFeedback: false);
   }
 
   @override

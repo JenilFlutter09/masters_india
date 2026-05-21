@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/app_dropdown_field.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/loading_overlay.dart';
@@ -19,7 +20,7 @@ class TruckEntryScreen extends GetView<TruckEntryController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Truck Entry')),
+      appBar: const CustomAppBar(title: 'Truck Entry'),
       body: Obx(
         () => LoadingOverlay(
           visible:
@@ -50,6 +51,7 @@ class TruckEntryScreen extends GetView<TruckEntryController> {
               ],
               leftPanel: WeighbridgeWeightPanel(
                 scaleStatus: controller.scaleStatus,
+                isScaleConnected: controller.scaleService.isScaleConnected,
                 printerStatus: controller.printerStatus,
                 liveReading: controller.liveReading.value,
                 grossWeightController: controller.grossWeightController,
@@ -57,52 +59,97 @@ class TruckEntryScreen extends GetView<TruckEntryController> {
                 onCaptureGross: controller.captureGrossWeight,
                 onCaptureTare: controller.captureTareWeight,
                 grossValidator: (value) =>
-                    controller.validateWeightValue(value, 'Gross weight'),
+                    controller.validateRequiredWeightValue(
+                      value,
+                      'Gross weight',
+                    ),
                 tareValidator: (value) =>
-                    controller.validateWeightValue(value, 'Tare weight'),
+                    controller.validateOptionalWeightValue(
+                      value,
+                      'Tare weight',
+                    ),
               ),
               rightPanel: SectionCard(
                 title: 'Entry Details',
                 subtitle:
-                    'Select the source masters and confirm the truck identity before posting inward stock.',
+                    'Capture the invoice reference, choose the raw material, then confirm the truck identity before posting inward stock.',
                 child: Column(
                   children: [
-                    AppDropdownField(
-                      label: 'Supplier',
-                      options: controller.suppliers,
-                      value: controller.selectedSupplierId.value,
-                      onChanged: controller.selectedSupplierId.call,
-                      validator: (value) =>
-                          controller.validateSelection(value, 'Supplier'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppDropdownField(
+                            label: 'Supplier',
+                            options: controller.suppliers,
+                            value: controller.selectedSupplierId.value,
+                            onChanged: controller.selectedSupplierId.call,
+                            validator: (value) =>
+                                controller.validateSelection(value, 'Supplier'),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Invoice Number',
+                            controller: controller.invoiceNoController,
+                            validator: (value) => controller.validateText(
+                              value,
+                              'Invoice number',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    AppDropdownField(
-                      label: 'Raw Material',
-                      options: controller.rawMaterials,
-                      value: controller.selectedRawMaterialId.value,
-                      onChanged: controller.selectedRawMaterialId.call,
-                      validator: (value) =>
-                          controller.validateSelection(value, 'Raw material'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppDropdownField(
+                            label: 'Raw Material',
+                            options: controller.rawMaterials,
+                            value: controller.selectedRawMaterialChoiceId.value,
+                            onChanged: controller.onRawMaterialChanged,
+                            validator: (value) => controller.validateSelection(
+                              value,
+                              'Raw material',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: AppDropdownField(
+                            label: 'Weighbridge',
+                            options: controller.weighbridges,
+                            value: controller.selectedWeighbridgeId.value,
+                            onChanged: controller.selectedWeighbridgeId.call,
+                            validator: (value) => controller.validateSelection(
+                              value,
+                              'Weighbridge',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    AppDropdownField(
-                      label: 'Weighbridge',
-                      options: controller.weighbridges,
-                      value: controller.selectedWeighbridgeId.value,
-                      onChanged: controller.selectedWeighbridgeId.call,
-                      validator: (value) =>
-                          controller.validateSelection(value, 'Weighbridge'),
-                    ),
-                    AppTextField(
-                      label: 'Truck Number',
-                      controller: controller.truckNumberController,
-                      validator: (value) =>
-                          controller.validateText(value, 'Truck number'),
-                    ),
-                    AppTextField(
-                      label: 'Weighed At',
-                      controller: controller.weighedAtController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Weighed at'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Truck Number',
+                            controller: controller.truckNumberController,
+                            validator: (value) =>
+                                controller.validateText(value, 'Truck number'),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Weighed At',
+                            controller: controller.weighedAtController,
+                            readOnly: true,
+                            validator: (value) =>
+                                controller.validateText(value, 'Weighed at'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

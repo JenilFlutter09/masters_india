@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/models/master_option.dart';
-import '../../../core/utils/api_date_time_formatter.dart';
+import '../../../core/models/production_line_catalog_item.dart';
 import '../../../core/utils/form_validators.dart';
 import '../../workflow/data/master_data_repository.dart';
+import '../../workflow/presentation/gross_tare_net_workflow_mixin.dart';
 import '../../workflow/presentation/workflow_form_controller.dart';
 
-class LineOutputController extends WorkflowFormController {
+class LineOutputController extends WorkflowFormController
+    with GrossTareNetWorkflowMixin {
   LineOutputController({
     required super.workflowRepository,
     required super.scaleService,
@@ -16,21 +18,14 @@ class LineOutputController extends WorkflowFormController {
 
   final masterDataRepository = Get.find<MasterDataRepository>();
 
-  final outputType = 'Rod'.obs;
-  final cctvRefController = TextEditingController();
-  final producedAtController = TextEditingController(
-    text: ApiDateTimeFormatter.now(),
-  );
-  final labelPrintedAtController = TextEditingController(
-    text: ApiDateTimeFormatter.now(),
-  );
-
+  final productionLineCatalog = <ProductionLineCatalogItem>[];
+  final motherCoilProducts = <MasterOption>[].obs;
   final productionLines = <MasterOption>[].obs;
   final metalAlloys = <MasterOption>[].obs;
   final selectedProductionLineId = RxnInt();
   final selectedMetalAlloyId = RxnInt();
-
-  bool get isRod => outputType.value == 'Rod';
+  final selectedMotherCoilProductId = RxnInt();
+  final lastCreatedMotherCoilId = RxnInt();
 
   @override
   void onInit() {
@@ -41,16 +36,34 @@ class LineOutputController extends WorkflowFormController {
   Future<void> _loadLookups() async {
     isLoadingMasters.value = true;
     try {
-      final productionLineOptions = await masterDataRepository
-          .fetchProductionLines();
-      final metalAlloyOptions = await masterDataRepository.fetchMetalAlloys();
-      productionLines.assignAll(productionLineOptions);
+      final results = await Future.wait([
+        masterDataRepository.fetchProductionLineCatalog(),
+        masterDataRepository.fetchMetalAlloys(),
+        masterDataRepository.fetchMotherCoilProducts(),
+      ]);
+      final productionLineOptions =
+          results[0] as List<ProductionLineCatalogItem>;
+      final metalAlloyOptions = results[1] as List<MasterOption>;
+      final motherCoilProductOptions = results[2] as List<MasterOption>;
+      productionLineCatalog
+        ..clear()
+        ..addAll(productionLineOptions);
+      productionLines.assignAll(
+        productionLineOptions.map((item) => item.option).toList(),
+      );
       metalAlloys.assignAll(metalAlloyOptions);
+      motherCoilProducts.assignAll(motherCoilProductOptions);
       if (!_containsOption(productionLines, selectedProductionLineId.value)) {
         selectedProductionLineId.value = null;
       }
       if (!_containsOption(metalAlloys, selectedMetalAlloyId.value)) {
         selectedMetalAlloyId.value = null;
+      }
+      if (!_containsOption(
+        motherCoilProducts,
+        selectedMotherCoilProductId.value,
+      )) {
+        selectedMotherCoilProductId.value = null;
       }
     } catch (error) {
       errorMessage.value = error.toString();
@@ -59,9 +72,19 @@ class LineOutputController extends WorkflowFormController {
     }
   }
 
-  void setOutputType(String? value) {
-    if (value != null) {
-      outputType.value = value;
+  void onProductionLineChanged(int? value) {
+    selectedProductionLineId.value = value;
+    final selectedLine = selectedProductionLine;
+    final assignedProduct =
+        selectedLine?.productName?.trim().toLowerCase() ?? '';
+    if (assignedProduct.isEmpty) {
+      return;
+    }
+    final matchingProduct = motherCoilProducts.firstWhereOrNull(
+      (item) => item.name.trim().toLowerCase() == assignedProduct,
+    );
+    if (matchingProduct != null) {
+      selectedMotherCoilProductId.value = matchingProduct.id;
     }
   }
 
@@ -78,17 +101,31 @@ class LineOutputController extends WorkflowFormController {
     return options.any((option) => option.id == value);
   }
 
+  ProductionLineCatalogItem? get selectedProductionLine => productionLineCatalog
+      .firstWhereOrNull((item) => item.id == selectedProductionLineId.value);
+
+  MasterOption? get selectedMotherCoilProduct => motherCoilProducts
+      .firstWhereOrNull((item) => item.id == selectedMotherCoilProductId.value);
+
+  String? get lineAssignedProductName {
+    final product = selectedProductionLine?.productName?.trim();
+    if (product == null || product.isEmpty) {
+      return null;
+    }
+    return product;
+  }
+
+  bool get canUndoLatestOutput =>
+      (lastCreatedMotherCoilId.value ?? 0) > 0 && !isSubmitting.value;
+
   @override
   Map<String, dynamic> buildPayload() {
     return {
       'production_line_id': selectedProductionLineId.value,
       'metal_alloy_id': selectedMetalAlloyId.value,
-      'production_type': outputType.value,
-      'issue_weight': enteredWeight,
-      if (cctvRefController.text.trim().isNotEmpty)
-        'cctv_ref': cctvRefController.text.trim(),
-      'produced_at': producedAtController.text.trim(),
-      'label_printed_at': labelPrintedAtController.text.trim(),
+      'mother_coil_product_id': selectedMotherCoilProductId.value,
+      'gross_weight': enteredGrossWeight,
+      'tare_weight': enteredTareWeight,
     };
   }
 
@@ -111,12 +148,73 @@ class LineOutputController extends WorkflowFormController {
         ),
       );
     }
+    final data = extractResultData(response);
+    final motherCoilId = data['mother_coil_id'];
+    if (motherCoilId is num) {
+      lastCreatedMotherCoilId.value = motherCoilId.toInt();
+    } else if (motherCoilId is String) {
+      lastCreatedMotherCoilId.value = int.tryParse(motherCoilId.trim());
+    }
+  }
+
+  @override
+  String buildSuccessMessage(Map<String, dynamic> response) {
+    final data = extractResultData(response);
+    final productionRef = data['production_ref']?.toString() ?? '-';
+    final coilNo = data['mother_coil_no']?.toString() ?? '-';
+    final netWeight = data['net_weight']?.toString() ?? '-';
+    return 'Mother coil inward created. Ref: $productionRef | Coil: $coilNo | Net: $netWeight';
+  }
+
+  Future<void> undoLatestOutput() async {
+    final motherCoilId = lastCreatedMotherCoilId.value;
+    if (motherCoilId == null || motherCoilId <= 0) {
+      errorMessage.value = 'No mother coil output is available to undo.';
+      return;
+    }
+
+    errorMessage.value = null;
+    successMessage.value = null;
+    isSubmitting.value = true;
+    try {
+      final response = await workflowRepository.furnaceOutput({
+        'undo': true,
+        'mother_coil_id': motherCoilId,
+      });
+      submissionResult.value = extractResultData(response);
+      successMessage.value =
+          response['message']?.toString() ??
+          'Mother coil output undone successfully.';
+      lastCreatedMotherCoilId.value = null;
+      Get.closeAllSnackbars();
+      Get.snackbar(
+        'Undo successful',
+        successMessage.value!,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+      );
+    } catch (error) {
+      errorMessage.value = error.toString();
+      Get.closeAllSnackbars();
+      Get.snackbar(
+        'Undo failed',
+        errorMessage.value!,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   @override
   void disposeControllers() {
-    cctvRefController.dispose();
-    producedAtController.dispose();
-    labelPrintedAtController.dispose();
+    disposeGrossTareNetControllers();
   }
 }

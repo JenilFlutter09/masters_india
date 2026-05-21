@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models/master_option.dart';
+import 'searchable_form_field.dart';
 
 class AppDropdownField extends StatelessWidget {
   const AppDropdownField({
@@ -20,23 +21,18 @@ class AppDropdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: DropdownButtonFormField<int>(
-        key: ValueKey('$label-$value-${options.length}'),
-        initialValue: value,
-        decoration: InputDecoration(labelText: label),
-        items: options
-            .map(
-              (option) => DropdownMenuItem<int>(
-                value: option.id,
-                child: Text(option.name),
-              ),
-            )
-            .toList(),
-        onChanged: onChanged,
-        validator: validator,
-      ),
+    return SearchableFormField<int>(
+      label: label,
+      value: value,
+      onChanged: onChanged,
+      validator: validator,
+     // hintText: 'Search and select $label',
+      options: options
+          .map(
+            (option) =>
+                SearchableOption<int>(value: option.id, label: option.name),
+          )
+          .toList(),
     );
   }
 }

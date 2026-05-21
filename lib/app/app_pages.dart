@@ -17,12 +17,8 @@ import '../features/dispatch/presentation/dross_outward_controller.dart';
 import '../features/dispatch/presentation/dross_outward_screen.dart';
 import '../features/dispatch/presentation/mother_coil_dispatch_controller.dart';
 import '../features/dispatch/presentation/mother_coil_dispatch_screen.dart';
-import '../features/dispatch/presentation/scrap_generation_controller.dart';
-import '../features/dispatch/presentation/scrap_generation_screen.dart';
 import '../features/dross_weighing/presentation/dross_weighing_controller.dart';
 import '../features/dross_weighing/presentation/dross_weighing_screen.dart';
-import '../features/line_input/presentation/line_input_controller.dart';
-import '../features/line_input/presentation/line_input_screen.dart';
 import '../features/line_output/presentation/line_output_controller.dart';
 import '../features/line_output/presentation/line_output_screen.dart';
 import '../features/scrap_weighing/presentation/scrap_weighing_controller.dart';
@@ -105,17 +101,6 @@ class AppPages {
       ),
     ),
     GetPage(
-      name: AppRoutes.lineInput,
-      page: LineInputScreen.new,
-      binding: _workflowBinding(
-        () => LineInputController(
-          workflowRepository: Get.find<WorkflowRepository>(),
-          scaleService: Get.find<ScaleService>(),
-          printerService: Get.find<PrinterService>(),
-        ),
-      ),
-    ),
-    GetPage(
       name: AppRoutes.lineOutput,
       page: LineOutputScreen.new,
       binding: _workflowBinding(
@@ -161,9 +146,9 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.scrapGeneration,
-      page: ScrapGenerationScreen.new,
+      page: ScrapWeighingScreen.new,
       binding: _workflowBinding(
-        () => ScrapGenerationController(
+        () => ScrapWeighingController(
           workflowRepository: Get.find<WorkflowRepository>(),
           scaleService: Get.find<ScaleService>(),
           printerService: Get.find<PrinterService>(),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_classic_serial/flutter_bluetooth_classic.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../shared/widgets/device_connection_bottom_sheet.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/status_banner.dart';
 import 'settings_controller.dart';
@@ -15,7 +16,7 @@ class SettingsScreen extends GetView<SettingsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: const CustomAppBar(title: 'Settings'),
       body: Obx(
         () => ListView(
           padding: const EdgeInsets.all(20),
@@ -55,21 +56,39 @@ class SettingsScreen extends GetView<SettingsController> {
               subtitle:
                   'Pair the floor scale through Android Bluetooth first, then connect it here.',
               child: _DeviceSection(
-                devices: controller.scaleEndpoint.pairedDevices,
                 status: controller.scaleEndpoint.status.value,
                 selectedName: controller.scaleEndpoint.selectedName,
-                onConnect: controller.connectScale,
+                actionLabel: controller.scaleService.isScaleConnected
+                    ? 'Disconnect Scale'
+                    : 'Open Scale Sheet',
+                onPressed: () async {
+                  if (controller.scaleService.isScaleConnected) {
+                    await controller.disconnectScale();
+                    return;
+                  }
+                  await showScaleConnectionSheet(context);
+                },
+                isConnected: controller.scaleService.isScaleConnected,
               ),
             ),
             SectionCard(
               title: 'Printer Device',
               subtitle:
-                  'Connect the Bluetooth printer used for dross and mother coil labels.',
+                  'Connect the SNBC label printer used for dross, mother coil, and baby-product labels.',
               child: _DeviceSection(
-                devices: controller.printerEndpoint.pairedDevices,
-                status: controller.printerEndpoint.status.value,
-                selectedName: controller.printerEndpoint.selectedName,
-                onConnect: controller.connectPrinter,
+                status: controller.printerService.deviceStatus,
+                selectedName: controller.printerService.selectedPrinterName,
+                actionLabel: controller.printerService.isPrinterConnected
+                    ? 'Disconnect Printer'
+                    : 'Open Printer Sheet',
+                onPressed: () async {
+                  if (controller.printerService.isPrinterConnected) {
+                    await controller.disconnectPrinter();
+                    return;
+                  }
+                  await showPrinterConnectionSheet(context);
+                },
+                isConnected: controller.printerService.isPrinterConnected,
               ),
             ),
             SectionCard(
@@ -110,16 +129,18 @@ class SettingsScreen extends GetView<SettingsController> {
 
 class _DeviceSection extends StatelessWidget {
   const _DeviceSection({
-    required this.devices,
     required this.status,
     required this.selectedName,
-    required this.onConnect,
+    required this.actionLabel,
+    required this.onPressed,
+    this.isConnected = false,
   });
 
-  final List<BluetoothDevice> devices;
   final String status;
   final String? selectedName;
-  final Future<void> Function(BluetoothDevice device) onConnect;
+  final String actionLabel;
+  final Future<void> Function() onPressed;
+  final bool isConnected;
 
   @override
   Widget build(BuildContext context) {
@@ -132,16 +153,32 @@ class _DeviceSection extends StatelessWidget {
           Text('Selected: $selectedName'),
         ],
         const SizedBox(height: 14),
-        if (devices.isEmpty) const Text('No paired Bluetooth devices found.'),
-        ...devices.map(
-          (device) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(device.name),
-            subtitle: Text(device.address),
-            trailing: TextButton(
-              onPressed: () => onConnect(device),
-              child: const Text('Connect'),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isConnected
+                ? const Color(0xFFF1F8F3)
+                : const Color(0xFFF6F8FC),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            isConnected
+                ? 'The active device is connected and ready to use.'
+                : 'Use the shared bottom sheet to choose the paired device you want to use.',
+          ),
+        ),
+        const SizedBox(height: 14),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              await onPressed();
+            },
+            icon: Icon(
+              isConnected ? Icons.link_off_rounded : Icons.bluetooth_rounded,
             ),
+            label: Text(actionLabel),
           ),
         ),
       ],

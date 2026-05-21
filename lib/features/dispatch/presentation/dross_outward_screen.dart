@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../shared/widgets/status_banner.dart';
 import '../../../shared/widgets/submission_result_card.dart';
-import '../../../shared/widgets/weight_capture_card.dart';
+import '../../../shared/widgets/weighbridge_weight_panel.dart';
+import '../../../shared/widgets/workflow_field_rows.dart';
 import '../../../shared/widgets/workflow_screen_shell.dart';
 import 'dross_outward_controller.dart';
 
@@ -18,7 +20,7 @@ class DrossOutwardScreen extends GetView<DrossOutwardController> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text('Dross Outward')),
+      appBar: const CustomAppBar(title: 'Dross Outward'),
       body: Obx(
         () => LoadingOverlay(
           visible: controller.isSubmitting.value,
@@ -41,29 +43,53 @@ class DrossOutwardScreen extends GetView<DrossOutwardController> {
                     isError: false,
                   ),
               ],
-              leftPanel: WeightCaptureCard(controller: controller),
+              leftPanel: WeighbridgeWeightPanel(
+                title: 'Outward Weight Station',
+                subtitle:
+                    'Capture gross and tare here. Net outward weight is calculated automatically.',
+                scaleStatus: controller.scaleStatus,
+                isScaleConnected: controller.scaleService.isScaleConnected,
+                printerStatus: controller.printerStatus,
+                liveReading: controller.liveReading.value,
+                grossWeightController: controller.grossWeightController,
+                tareWeightController: controller.tareWeightController,
+                onCaptureGross: controller.captureGrossWeight,
+                onCaptureTare: controller.captureTareWeight,
+                grossValidator: (value) =>
+                    controller.validateRequiredWeightValue(
+                      value,
+                      'Gross weight',
+                    ),
+                tareValidator: (value) =>
+                    controller.validateOptionalWeightValue(
+                      value,
+                      'Tare weight',
+                    ),
+              ),
               rightPanel: SectionCard(
                 title: 'Outward Details',
                 subtitle:
                     'Provide the linked inward record and outward timestamp to complete the movement.',
-                child: Column(
-                  children: [
-                    AppTextField(
-                      label: 'Dross Inward ID',
-                      controller: controller.drossInwardIdController,
-                      keyboardType: TextInputType.number,
-                      validator: (value) => controller.validateIntegerValue(
-                        value,
-                        'Dross inward ID',
+                child: WorkflowFieldRows(
+                  rows: [
+                    [
+                      AppTextField(
+                        label: 'Dross Inward ID',
+                        controller: controller.drossInwardIdController,
+                        keyboardType: TextInputType.number,
+                        validator: (value) => controller.validateIntegerValue(
+                          value,
+                          'Dross inward ID',
+                        ),
                       ),
-                    ),
-                    AppTextField(
-                      label: 'Recorded At',
-                      controller: controller.recordedAtController,
-                      readOnly: true,
-                      validator: (value) =>
-                          controller.validateText(value, 'Recorded at'),
-                    ),
+                      AppTextField(
+                        label: 'Recorded At',
+                        controller: controller.recordedAtController,
+                        readOnly: true,
+                        validator: (value) =>
+                            controller.validateText(value, 'Recorded at'),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -56,7 +56,10 @@ Future<void> _initializeServices() async {
     permanent: true,
   );
   Get.put(ScaleService(bluetoothDeviceService), permanent: true);
-  Get.put(PrinterService(bluetoothDeviceService), permanent: true);
+  final printerService = Get.put(
+    PrinterService(bluetoothDeviceService),
+    permanent: true,
+  );
   Get.put(InventoryCacheService(), permanent: true);
   Get.put(
     WorkflowRepository(
@@ -82,4 +85,5 @@ Future<void> _initializeServices() async {
 
   await authService.restoreSession();
   await bluetoothDeviceService.initialize();
+  await printerService.initialize();
 }
