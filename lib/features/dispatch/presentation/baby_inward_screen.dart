@@ -36,6 +36,7 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
               title: 'Baby Inward',
               subtitle:
                   'Run the weight station on the left and capture the mother coil linkage and label timing on the right.',
+              onRefresh: controller.refreshScreen,
               topWidgets: [
                 if (controller.errorMessage.value != null)
                   StatusBanner(
@@ -62,16 +63,10 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
                 tareWeightController: controller.tareWeightController,
                 onCaptureGross: controller.captureGrossWeight,
                 onCaptureTare: controller.captureTareWeight,
-                grossValidator: (value) =>
-                    controller.validateRequiredWeightValue(
-                      value,
-                      'Gross weight',
-                    ),
-                tareValidator: (value) =>
-                    controller.validateOptionalWeightValue(
-                      value,
-                      'Tare weight',
-                    ),
+                grossValidator: (value) => controller
+                    .validateRequiredWeightValue(value, 'Gross weight'),
+                tareValidator: (value) => controller
+                    .validateOptionalWeightValue(value, 'Tare weight'),
               ),
               rightPanel: SectionCard(
                 title: 'Item Details',
@@ -107,6 +102,8 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
                           'Mother coil ID',
                         ),
                       ),
+                    ],
+                    [
                       AppDropdownField(
                         label: 'Baby Product',
                         options: controller.babyProducts,
@@ -116,6 +113,8 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
                             controller.validateSelection(value, 'Baby product'),
                       ),
                     ],
+                    if (controller.parameterKeys.isNotEmpty)
+                      [_BabyProductParameterFields(controller: controller)],
                     [
                       AppTextField(
                         label: 'Created On',
@@ -132,28 +131,6 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
                             controller.validateText(value, 'Label printed at'),
                       ),
                     ],
-                    for (
-                      var index = 0;
-                      index < controller.parameterKeys.length;
-                      index += 2
-                    )
-                      [
-                        AppTextField(
-                          label: controller.parameterKeys[index],
-                          controller:
-                              controller.parameterControllers[controller
-                                  .parameterKeys[index]]!,
-                        ),
-                        if (index + 1 < controller.parameterKeys.length)
-                          AppTextField(
-                            label: controller.parameterKeys[index + 1],
-                            controller:
-                                controller.parameterControllers[controller
-                                    .parameterKeys[index + 1]]!,
-                          )
-                        else
-                          const SizedBox.shrink(),
-                      ],
                   ],
                 ),
               ),
@@ -178,6 +155,60 @@ class BabyInwardScreen extends GetView<BabyInwardController> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BabyProductParameterFields extends StatelessWidget {
+  const _BabyProductParameterFields({required this.controller});
+
+  final BabyInwardController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rows = <List<Widget>>[];
+    for (var index = 0; index < controller.parameterKeys.length; index += 2) {
+      final firstKey = controller.parameterKeys[index];
+      rows.add([
+        AppTextField(
+          label: firstKey,
+          controller: controller.parameterControllers[firstKey]!,
+          validator: (value) =>
+              controller.validateParameterValue(value, firstKey),
+        ),
+        if (index + 1 < controller.parameterKeys.length)
+          AppTextField(
+            label: controller.parameterKeys[index + 1],
+            controller: controller
+                .parameterControllers[controller.parameterKeys[index + 1]]!,
+            validator: (value) => controller.validateParameterValue(
+              value,
+              controller.parameterKeys[index + 1],
+            ),
+          )
+        else
+          const SizedBox.shrink(),
+      ]);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              'Baby Product Parameters',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          WorkflowFieldRows(rows: rows),
+        ],
       ),
     );
   }

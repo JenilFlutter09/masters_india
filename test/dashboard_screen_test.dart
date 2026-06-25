@@ -83,9 +83,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: DashboardScreen()));
     await tester.pumpAndSettle();
 
-    final firstTilePosition = tester.getTopLeft(
-      find.text('Mother Coil Dispatch'),
-    );
+    final firstTilePosition = tester.getTopLeft(find.text('Dispatch'));
     final secondTilePosition = tester.getTopLeft(find.text('Baby Inward'));
 
     expect(firstTilePosition.dy, secondTilePosition.dy);

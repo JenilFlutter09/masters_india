@@ -11,12 +11,8 @@ import '../features/dashboard/presentation/dashboard_controller.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/dispatch/presentation/baby_inward_controller.dart';
 import '../features/dispatch/presentation/baby_inward_screen.dart';
-import '../features/dispatch/presentation/baby_product_dispatch_controller.dart';
-import '../features/dispatch/presentation/baby_product_dispatch_screen.dart';
-import '../features/dispatch/presentation/dross_outward_controller.dart';
-import '../features/dispatch/presentation/dross_outward_screen.dart';
-import '../features/dispatch/presentation/mother_coil_dispatch_controller.dart';
-import '../features/dispatch/presentation/mother_coil_dispatch_screen.dart';
+import '../features/dispatch/presentation/dispatch_controller.dart';
+import '../features/dispatch/presentation/dispatch_screen.dart';
 import '../features/dross_weighing/presentation/dross_weighing_controller.dart';
 import '../features/dross_weighing/presentation/dross_weighing_screen.dart';
 import '../features/line_output/presentation/line_output_controller.dart';
@@ -40,6 +36,7 @@ class AppPages {
       binding: BindingsBuilder(
         () => Get.lazyPut(
           () => LoginController(authService: Get.find<AuthService>()),
+          fenix: false,
         ),
       ),
     ),
@@ -53,6 +50,7 @@ class AppPages {
             inventoryCacheService: Get.find<InventoryCacheService>(),
             authService: Get.find<AuthService>(),
           ),
+          fenix: false,
         ),
       ),
     ),
@@ -112,10 +110,21 @@ class AppPages {
       ),
     ),
     GetPage(
-      name: AppRoutes.motherCoilDispatch,
-      page: MotherCoilDispatchScreen.new,
+      name: AppRoutes.dispatch,
+      page: DispatchScreen.new,
       binding: _workflowBinding(
-        () => MotherCoilDispatchController(
+        () => DispatchController(
+          workflowRepository: Get.find<WorkflowRepository>(),
+          scaleService: Get.find<ScaleService>(),
+          printerService: Get.find<PrinterService>(),
+        ),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.motherCoilDispatch,
+      page: DispatchScreen.new,
+      binding: _workflowBinding(
+        () => DispatchController(
           workflowRepository: Get.find<WorkflowRepository>(),
           scaleService: Get.find<ScaleService>(),
           printerService: Get.find<PrinterService>(),
@@ -135,31 +144,9 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.babyProductDispatch,
-      page: BabyProductDispatchScreen.new,
+      page: DispatchScreen.new,
       binding: _workflowBinding(
-        () => BabyProductDispatchController(
-          workflowRepository: Get.find<WorkflowRepository>(),
-          scaleService: Get.find<ScaleService>(),
-          printerService: Get.find<PrinterService>(),
-        ),
-      ),
-    ),
-    GetPage(
-      name: AppRoutes.scrapGeneration,
-      page: ScrapWeighingScreen.new,
-      binding: _workflowBinding(
-        () => ScrapWeighingController(
-          workflowRepository: Get.find<WorkflowRepository>(),
-          scaleService: Get.find<ScaleService>(),
-          printerService: Get.find<PrinterService>(),
-        ),
-      ),
-    ),
-    GetPage(
-      name: AppRoutes.drossOutward,
-      page: DrossOutwardScreen.new,
-      binding: _workflowBinding(
-        () => DrossOutwardController(
+        () => DispatchController(
           workflowRepository: Get.find<WorkflowRepository>(),
           scaleService: Get.find<ScaleService>(),
           printerService: Get.find<PrinterService>(),
@@ -172,6 +159,7 @@ class AppPages {
       binding: BindingsBuilder(
         () => Get.lazyPut(
           () => SettingsController(authService: Get.find<AuthService>()),
+          fenix: false,
         ),
       ),
     ),
@@ -179,7 +167,7 @@ class AppPages {
 
   static Bindings _workflowBinding<T>(T Function() factory) {
     return BindingsBuilder(() {
-      Get.lazyPut<T>(factory);
+      Get.lazyPut<T>(factory, fenix: false);
     });
   }
 }

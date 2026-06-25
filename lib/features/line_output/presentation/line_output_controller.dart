@@ -72,6 +72,12 @@ class LineOutputController extends WorkflowFormController
     }
   }
 
+  @override
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+    await _loadLookups();
+  }
+
   void onProductionLineChanged(int? value) {
     selectedProductionLineId.value = value;
     final selectedLine = selectedProductionLine;

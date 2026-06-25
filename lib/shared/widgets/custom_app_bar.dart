@@ -91,7 +91,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 if (confirmed == true) {
                   await bluetoothService
                       .endpoint(DeviceRole.scale)
-                      .disconnect();
+                      .disconnectAndForget();
                 }
                 return;
               }

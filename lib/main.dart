@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -8,6 +10,7 @@ import 'core/services/api_client.dart';
 import 'core/services/app_config_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/bluetooth_device_service.dart';
+import 'core/services/device_reconnect_service.dart';
 import 'core/services/inventory_cache_service.dart';
 import 'core/services/printer_service.dart';
 import 'core/services/scale_service.dart';
@@ -20,7 +23,8 @@ import 'features/workflow/data/workflow_repository.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
-  await _initializeServices();
+  final deviceServices = await _initializeServices();
+  unawaited(_initializeDeviceServices(deviceServices));
   runApp(
     MastersIndiaApp(
       initialRoute: Get.find<AuthService>().isLoggedIn.value
@@ -30,7 +34,35 @@ Future<void> main() async {
   );
 }
 
-Future<void> _initializeServices() async {
+typedef _DeviceServices =
+    ({
+      BluetoothDeviceService bluetoothDeviceService,
+      PrinterService printerService,
+    });
+
+Future<void> _initializeDeviceServices(
+  ({
+    BluetoothDeviceService bluetoothDeviceService,
+    PrinterService printerService,
+  })
+  services,
+) async {
+  try {
+    await services.bluetoothDeviceService.initialize();
+  } catch (error, stackTrace) {
+    debugPrint('Bluetooth device service initialization failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+
+  try {
+    await services.printerService.initialize();
+  } catch (error, stackTrace) {
+    debugPrint('Printer service initialization failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+}
+
+Future<_DeviceServices> _initializeServices() async {
   final storageService = Get.put(StorageService(), permanent: true);
   final appConfigService = Get.put(
     AppConfigService(storageService),
@@ -60,6 +92,13 @@ Future<void> _initializeServices() async {
     PrinterService(bluetoothDeviceService),
     permanent: true,
   );
+  Get.put(
+    DeviceReconnectService(
+      bluetoothDeviceService: bluetoothDeviceService,
+      printerService: printerService,
+    ),
+    permanent: true,
+  );
   Get.put(InventoryCacheService(), permanent: true);
   Get.put(
     WorkflowRepository(
@@ -84,6 +123,8 @@ Future<void> _initializeServices() async {
   );
 
   await authService.restoreSession();
-  await bluetoothDeviceService.initialize();
-  await printerService.initialize();
+  return (
+    bluetoothDeviceService: bluetoothDeviceService,
+    printerService: printerService,
+  );
 }

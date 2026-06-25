@@ -4,7 +4,6 @@ import '../../../core/models/production_line_catalog_item.dart';
 import '../../../core/models/product_catalog_item.dart';
 import '../../../core/models/raw_material_catalog_item.dart';
 import '../../../core/models/truck_receipt_reference.dart';
-import '../../../core/models/app_exception.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/services/app_config_service.dart';
 
@@ -55,35 +54,17 @@ class MasterDataRepository {
   }
 
   Future<List<TruckReceiptReference>> fetchTruckReceiptReferences() async {
-    const candidatePaths = [
-      '/masters/raw-material-inward-references',
-      '/masters/inward-receipts',
-      '/masters/receipts',
-      '/workflow/raw-material-inward-references',
-    ];
+    final response = await _apiClient.get('/workflow/receipts');
+    final data = response['data'];
+    final pagePayload = data is Map ? data.cast<String, dynamic>() : const {};
+    final raw = pagePayload['data'] as List<dynamic>? ?? const [];
 
-    AppException? lastError;
-    for (final path in candidatePaths) {
-      try {
-        final raw = await _fetchList(path);
-        return raw
-            .map(TruckReceiptReference.fromJson)
-            .where((item) => item.receiptNumber.trim().isNotEmpty)
-            .toList();
-      } on AppException catch (error) {
-        lastError = error;
-        if (error.statusCode == 404) {
-          continue;
-        }
-        rethrow;
-      }
-    }
-
-    if (lastError != null) {
-      throw lastError;
-    }
-
-    return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => item.cast<String, dynamic>())
+        .map(TruckReceiptReference.fromJson)
+        .where((item) => item.receiptNumber.trim().isNotEmpty)
+        .toList();
   }
 
   Future<List<MasterOption>> fetchProductionLines() =>

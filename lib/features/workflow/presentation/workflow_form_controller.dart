@@ -196,6 +196,10 @@ abstract class WorkflowFormController extends GetxController {
     Map<String, dynamic> response,
   ) async {}
 
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+  }
+
   Map<String, dynamic> extractResultData(Map<String, dynamic> response) {
     final data = response['data'];
     if (data is Map<String, dynamic>) {

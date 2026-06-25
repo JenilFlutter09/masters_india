@@ -33,7 +33,7 @@ class DashboardScreen extends GetView<DashboardController> {
           ),
           _DashboardAction(
             title: 'Truck Exit',
-            subtitle: 'Capture empty truck exit against receipt or invoice.',
+            subtitle: 'Dispatch Finished Goods as well as Empty Truck Exit',
             icon: Icons.move_to_inbox_outlined,
             onTap: () => Get.toNamed(AppRoutes.truckExit),
           ),
@@ -58,10 +58,11 @@ class DashboardScreen extends GetView<DashboardController> {
         ];
         final supportActions = [
           _DashboardAction(
-            title: 'Mother Coil Dispatch',
-            subtitle: 'Dispatch conversion stock and set baby cap.',
+            title: 'Dispatch',
+            subtitle:
+                'Dispatch mother coils and baby products from one scanner-led screen.',
             icon: Icons.inventory_2_outlined,
-            onTap: () => Get.toNamed(AppRoutes.motherCoilDispatch),
+            onTap: () => Get.toNamed(AppRoutes.dispatch),
           ),
           _DashboardAction(
             title: 'Baby Inward',
@@ -69,33 +70,12 @@ class DashboardScreen extends GetView<DashboardController> {
             icon: Icons.widgets_outlined,
             onTap: () => Get.toNamed(AppRoutes.babyInward),
           ),
-          _DashboardAction(
-            title: 'Baby Product Dispatch',
-            subtitle: 'Dispatch baby product by barcode.',
-            icon: Icons.sell_outlined,
-            onTap: () => Get.toNamed(AppRoutes.babyProductDispatch),
-          ),
-          _DashboardAction(
-            title: 'Scrap Generation',
-            subtitle: 'Open the reverse tab to move scrap back to the yard.',
-            icon: Icons.recycling_outlined,
-            onTap: () => Get.toNamed(
-              AppRoutes.scrapWeighing,
-              arguments: {'initialTab': 1},
-            ),
-          ),
-          _DashboardAction(
-            title: 'Dross Outward',
-            subtitle: 'Record dross outward movements.',
-            icon: Icons.outbox_outlined,
-            onTap: () => Get.toNamed(AppRoutes.drossOutward),
-          ),
         ];
         final dashboardHighlights = [
           '${primaryActions.length + supportActions.length} workflows',
           summaryEntries.isEmpty
               ? 'Inventory sync pending'
-              : '${summaryEntries.length} inventory buckets'
+              : '${summaryEntries.length} inventory buckets',
           // controller.recentTransactions.isEmpty
           //     ? 'No recent activity'
           //     : '${controller.recentTransactions.take(5).length} recent events',

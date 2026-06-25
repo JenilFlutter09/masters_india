@@ -59,7 +59,7 @@ class SettingsController extends GetxController {
   }
 
   Future<void> disconnectScale() async {
-    final success = await scaleEndpoint.disconnect();
+    final success = await scaleEndpoint.disconnectAndForget();
     feedback.value = success
         ? 'Scale disconnected.'
         : 'Failed to disconnect scale.';

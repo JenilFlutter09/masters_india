@@ -102,6 +102,12 @@ class TruckExitController extends WorkflowFormController {
     }
   }
 
+  @override
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+    await _loadLookups();
+  }
+
   void captureGrossWeight() {
     final reading = liveReading.value;
     if (reading != null) {

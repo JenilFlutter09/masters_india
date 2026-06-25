@@ -31,6 +31,13 @@ class BluetoothEndpoint {
   StreamSubscription<BluetoothConnectionState>? _connectionSubscription;
   StreamSubscription<BluetoothState>? _stateSubscription;
   StreamSubscription<BluetoothData>? _dataSubscription;
+  StreamSubscription<BluetoothDevice>? _discoverySubscription;
+  final Map<String, BluetoothDevice> _discoveredDeviceMap = {};
+  Completer<void>? _firstPacketCompleter;
+  BluetoothDevice? _pendingDevice;
+  bool _listenersInitialized = false;
+  bool _isConnecting = false;
+  bool _isReconnecting = false;
 
   String? get selectedAddress => role == DeviceRole.scale
       ? storageService.scaleAddress
@@ -43,20 +50,64 @@ class BluetoothEndpoint {
   bool get supportsClassicConnection => role == DeviceRole.scale;
 
   Future<void> initialize() async {
-    await _ensurePermissions();
-    isBluetoothEnabled.value = await bluetooth.isBluetoothEnabled();
+    await _prepareBluetooth();
     await loadPairedDevices();
+    if (_listenersInitialized) {
+      if (supportsClassicConnection) {
+        await reconnectSaved();
+      }
+      return;
+    }
+
+    isBluetoothEnabled.value = await bluetooth.isBluetoothEnabled();
     _stateSubscription = bluetooth.onStateChanged.listen((state) {
       isBluetoothEnabled.value = state.isEnabled;
-    });
-    _connectionSubscription = bluetooth.onConnectionChanged.listen((state) {
-      isConnected.value = state.isConnected;
-      status.value = state.status;
-      if (!state.isConnected) {
-        connectedDevice.value = null;
+      if (state.isEnabled) {
+        unawaited(loadPairedDevices());
       }
     });
-    _dataSubscription = bluetooth.onDataReceived.listen(_dataController.add);
+
+    _connectionSubscription = bluetooth.onConnectionChanged.listen((state) {
+      if (state.isConnected) {
+        status.value = state.status;
+        connectedDevice.value = pairedDevices.firstWhereOrNull(
+          (item) => item.address == state.deviceAddress,
+        );
+      } else {
+        isConnected.value = false;
+        connectedDevice.value = null;
+        status.value = state.status;
+        if (_firstPacketCompleter?.isCompleted == false) {
+          _firstPacketCompleter?.completeError(
+            Exception('Scale disconnected before data was received.'),
+          );
+        }
+        _pendingDevice = null;
+      }
+    });
+
+    _dataSubscription = bluetooth.onDataReceived.listen((data) {
+      _dataController.add(data);
+      if (!supportsClassicConnection) {
+        return;
+      }
+
+      final pending = _pendingDevice;
+      if (pending != null) {
+        isConnected.value = true;
+        connectedDevice.value = pending;
+        status.value = 'Connected to ${pending.name}';
+        _pendingDevice = null;
+        if (_firstPacketCompleter?.isCompleted == false) {
+          _firstPacketCompleter?.complete();
+        }
+        _firstPacketCompleter = null;
+      } else if (connectedDevice.value != null) {
+        isConnected.value = true;
+      }
+    });
+
+    _listenersInitialized = true;
     if (supportsClassicConnection) {
       await reconnectSaved();
     }
@@ -66,8 +117,27 @@ class BluetoothEndpoint {
     await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
+      Permission.location,
       Permission.locationWhenInUse,
     ].request();
+  }
+
+  Future<void> _prepareBluetooth() async {
+    await _ensurePermissions();
+    final supported = await bluetooth.isBluetoothSupported();
+    if (!supported) {
+      throw Exception('Bluetooth is not supported on this device.');
+    }
+
+    var enabled = await bluetooth.isBluetoothEnabled();
+    if (!enabled) {
+      enabled = await bluetooth.enableBluetooth();
+    }
+    if (!enabled) {
+      throw Exception('Bluetooth is off.');
+    }
+
+    isBluetoothEnabled.value = true;
   }
 
   Future<void> loadPairedDevices() async {
@@ -88,17 +158,94 @@ class BluetoothEndpoint {
     }
   }
 
-  Future<void> reconnectSaved() async {
+  Future<void> clearSelection() async {
+    if (role == DeviceRole.scale) {
+      await storageService.clearScaleSelection();
+    } else {
+      await storageService.clearPrinterSelection();
+    }
+  }
+
+  Future<void> reconnectSaved({bool force = false}) async {
+    if (!supportsClassicConnection || _isReconnecting) {
+      return;
+    }
+    if (isConnected.value && !force) {
+      return;
+    }
+
     final address = selectedAddress;
     if (address == null || address.isEmpty) {
       return;
     }
-    final device = pairedDevices.firstWhereOrNull(
-      (item) => item.address == address,
-    );
-    if (device != null) {
-      await connect(device, persistSelection: false);
+
+    _isReconnecting = true;
+    try {
+      if (force) {
+        await disconnect(forgetSelection: false);
+      }
+
+      await _prepareBluetooth();
+      await loadPairedDevices();
+
+      var matched = pairedDevices.firstWhereOrNull(
+        (item) => item.address == address,
+      );
+      matched ??= await _discoverDevice(address);
+
+      if (matched != null) {
+        await connect(matched, persistSelection: false);
+      }
+    } finally {
+      _isReconnecting = false;
     }
+  }
+
+  Future<BluetoothDevice?> _discoverDevice(String address) async {
+    _discoveredDeviceMap
+      ..clear()
+      ..addEntries(
+        pairedDevices.map((device) => MapEntry(device.address, device)),
+      );
+
+    await _discoverySubscription?.cancel();
+    try {
+      final discoveryStarted = await bluetooth.startDiscovery();
+      if (!discoveryStarted) {
+        return _discoveredDeviceMap[address];
+      }
+
+      _discoverySubscription = bluetooth.onDeviceDiscovered.listen((device) {
+        _discoveredDeviceMap[device.address] = device;
+      });
+
+      final until = DateTime.now().add(const Duration(seconds: 5));
+      while (DateTime.now().isBefore(until)) {
+        final matched = _discoveredDeviceMap[address];
+        if (matched != null) {
+          return matched;
+        }
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+      return _discoveredDeviceMap[address];
+    } catch (_) {
+      return _discoveredDeviceMap[address];
+    } finally {
+      try {
+        await bluetooth.stopDiscovery();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> handleAppResumed() async {
+    if (!supportsClassicConnection) {
+      return;
+    }
+    final address = selectedAddress;
+    if (address == null || address.isEmpty) {
+      return;
+    }
+    await reconnectSaved(force: true);
   }
 
   Future<bool> connect(
@@ -112,25 +259,64 @@ class BluetoothEndpoint {
       status.value = 'Selected ${device.name}';
       return true;
     }
-    final result = await bluetooth.connect(device.address);
-    if (result) {
-      connectedDevice.value = device;
-      status.value = 'Connected to ${device.name}';
+    if (_isConnecting) {
+      return false;
+    }
+
+    _isConnecting = true;
+    status.value = 'Connecting to ${device.name}...';
+    try {
+      await initialize();
+      await _prepareBluetooth();
+
+      try {
+        await bluetooth.stopDiscovery();
+      } catch (_) {}
+
+      _pendingDevice = device;
+      _firstPacketCompleter = Completer<void>();
+
+      final connected = await bluetooth.connect(device.address);
+      if (!connected) {
+        throw Exception('Device rejected the connection.');
+      }
+
+      await _firstPacketCompleter!.future.timeout(const Duration(seconds: 5));
       if (persistSelection) {
         await saveSelection(device);
       }
+      return true;
+    } catch (_) {
+      isConnected.value = false;
+      connectedDevice.value = null;
+      _pendingDevice = null;
+      _firstPacketCompleter = null;
+      await disconnect(forgetSelection: false);
+      status.value = 'Unable to connect to ${device.name}';
+      return false;
+    } finally {
+      _isConnecting = false;
     }
-    return result;
   }
 
-  Future<bool> disconnect() async {
-    final result = await bluetooth.disconnect();
-    if (result) {
-      connectedDevice.value = null;
-      status.value = 'Disconnected';
+  Future<bool> disconnect({bool forgetSelection = false}) async {
+    try {
+      await bluetooth.disconnect();
+    } catch (_) {}
+
+    isConnected.value = false;
+    connectedDevice.value = null;
+    _pendingDevice = null;
+    _firstPacketCompleter = null;
+    status.value = 'Disconnected';
+
+    if (forgetSelection) {
+      await clearSelection();
     }
-    return result;
+    return true;
   }
+
+  Future<bool> disconnectAndForget() => disconnect(forgetSelection: true);
 
   Future<bool> sendString(String message) => bluetooth.sendString(message);
 
@@ -138,6 +324,7 @@ class BluetoothEndpoint {
     _connectionSubscription?.cancel();
     _stateSubscription?.cancel();
     _dataSubscription?.cancel();
+    _discoverySubscription?.cancel();
     _dataController.close();
   }
 }
@@ -154,6 +341,7 @@ class BluetoothDeviceService extends GetxService {
           storageService: storageService,
         ),
       };
+
   final Map<DeviceRole, BluetoothEndpoint> _endpoints;
 
   BluetoothEndpoint endpoint(DeviceRole role) => _endpoints[role]!;
@@ -166,4 +354,10 @@ class BluetoothDeviceService extends GetxService {
       await endpoint.initialize();
     }
   }
+
+  Future<void> reconnectSavedScale({bool force = false}) =>
+      endpoint(DeviceRole.scale).reconnectSaved(force: force);
+
+  Future<void> handleScaleAppResumed() =>
+      endpoint(DeviceRole.scale).handleAppResumed();
 }

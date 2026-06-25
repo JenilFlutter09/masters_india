@@ -38,6 +38,7 @@ class ScrapWeighingScreen extends GetView<ScrapWeighingController> {
               child: WorkflowScreenShell(
                 title: 'Scrap Weighing',
                 subtitle: controller.screenSubtitle,
+                onRefresh: controller.refreshScreen,
                 topWidgets: [
                   Container(
                     decoration: BoxDecoration(
@@ -78,16 +79,10 @@ class ScrapWeighingScreen extends GetView<ScrapWeighingController> {
                   tareWeightController: controller.tareWeightController,
                   onCaptureGross: controller.captureGrossWeight,
                   onCaptureTare: controller.captureTareWeight,
-                  grossValidator: (value) =>
-                      controller.validateRequiredWeightValue(
-                        value,
-                        'Gross weight',
-                      ),
-                  tareValidator: (value) =>
-                      controller.validateOptionalWeightValue(
-                        value,
-                        'Tare weight',
-                      ),
+                  grossValidator: (value) => controller
+                      .validateRequiredWeightValue(value, 'Gross weight'),
+                  tareValidator: (value) => controller
+                      .validateOptionalWeightValue(value, 'Tare weight'),
                 ),
                 rightPanel: SectionCard(
                   title: controller.movementTitle,

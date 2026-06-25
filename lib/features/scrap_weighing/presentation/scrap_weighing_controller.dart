@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../app/app_routes.dart';
 import '../../../core/models/master_option.dart';
 import '../../../core/models/raw_material_catalog_item.dart';
 import '../../../core/utils/api_date_time_formatter.dart';
@@ -47,10 +46,6 @@ class ScrapWeighingController extends WorkflowFormController
     final args = Get.arguments;
     if (args is Map && args['initialTab'] is int) {
       selectedMovementTab.value = (args['initialTab'] as int).clamp(0, 1);
-      return;
-    }
-    if (Get.currentRoute == AppRoutes.scrapGeneration) {
-      selectedMovementTab.value = 1;
     }
   }
 
@@ -79,6 +74,12 @@ class ScrapWeighingController extends WorkflowFormController
     } finally {
       isLoadingMasters.value = false;
     }
+  }
+
+  @override
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+    await _loadLookups();
   }
 
   String? validateText(String? value, String label) =>

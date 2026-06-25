@@ -35,6 +35,7 @@ class PrinterService extends GetxService {
   final _deviceStatus = 'Not connected'.obs;
   final _isConnected = false.obs;
   Timer? _statusTimer;
+  bool _isReconnectInFlight = false;
 
   bool get isPrinterConfigured =>
       _bluetoothDeviceService?.endpoint(DeviceRole.printer).selectedAddress !=
@@ -56,16 +57,7 @@ class PrinterService extends GetxService {
       return;
     }
     await refreshStatus(showDisconnectedFeedback: false);
-    final selectedAddress = _bluetoothDeviceService
-        .endpoint(DeviceRole.printer)
-        .selectedAddress;
-    if (selectedAddress != null && selectedAddress.isNotEmpty) {
-      await connectPrinterByAddress(
-        selectedAddress,
-        persistSelection: false,
-        showStatusRefresh: false,
-      );
-    }
+    await reconnectSavedPrinter();
     _statusTimer?.cancel();
     _statusTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       unawaited(refreshStatus(showDisconnectedFeedback: false));
@@ -73,12 +65,11 @@ class PrinterService extends GetxService {
   }
 
   Future<bool> connectPrinter(BluetoothDevice device) async {
-    final success = await connectPrinterByAddress(
+    return connectPrinterByAddress(
       device.address,
       persistSelection: true,
       device: device,
     );
-    return success;
   }
 
   Future<bool> connectPrinterByAddress(
@@ -122,7 +113,36 @@ class PrinterService extends GetxService {
     }
   }
 
-  Future<bool> disconnectPrinter() async {
+  Future<bool> reconnectSavedPrinter({bool force = false}) async {
+    if (_bluetoothDeviceService == null ||
+        _isReconnectInFlight ||
+        (isPrinterConnected && !force)) {
+      return isPrinterConnected;
+    }
+
+    final endpoint = _bluetoothDeviceService.endpoint(DeviceRole.printer);
+    final selectedAddress = endpoint.selectedAddress;
+    if (selectedAddress == null || selectedAddress.isEmpty) {
+      return false;
+    }
+
+    _isReconnectInFlight = true;
+    try {
+      await endpoint.loadPairedDevices();
+      if (force) {
+        await disconnectPrinter(forgetSelection: false);
+      }
+      return await connectPrinterByAddress(
+        selectedAddress,
+        persistSelection: false,
+        showStatusRefresh: false,
+      );
+    } finally {
+      _isReconnectInFlight = false;
+    }
+  }
+
+  Future<bool> disconnectPrinter({bool forgetSelection = true}) async {
     if (_bluetoothDeviceService == null) {
       return true;
     }
@@ -130,6 +150,11 @@ class PrinterService extends GetxService {
       final result = await _channel.invokeMethod<String>('disconnectPrinter');
       _isConnected.value = false;
       _deviceStatus.value = result ?? 'Disconnected';
+      if (forgetSelection) {
+        await _bluetoothDeviceService
+            .endpoint(DeviceRole.printer)
+            .clearSelection();
+      }
       return true;
     } on PlatformException catch (error) {
       _deviceStatus.value = error.message ?? 'Disconnect failed';

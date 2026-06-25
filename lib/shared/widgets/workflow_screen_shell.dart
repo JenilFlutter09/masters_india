@@ -4,23 +4,25 @@ class WorkflowScreenShell extends StatelessWidget {
   const WorkflowScreenShell({
     required this.title,
     required this.subtitle,
-    required this.leftPanel,
+    this.leftPanel,
     required this.rightPanel,
     required this.primaryAction,
     this.headerBadge,
     this.topWidgets = const [],
     this.result,
+    this.onRefresh,
     super.key,
   });
 
   final String title;
   final String subtitle;
-  final Widget leftPanel;
+  final Widget? leftPanel;
   final Widget rightPanel;
   final Widget primaryAction;
   final String? headerBadge;
   final List<Widget> topWidgets;
   final Widget? result;
+  final RefreshCallback? onRefresh;
 
   static const _tabletBreakpoint = 980.0;
 
@@ -29,7 +31,8 @@ class WorkflowScreenShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTablet = constraints.maxWidth >= _tabletBreakpoint;
-        return ListView(
+        final content = ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             isTablet ? 28 : 20,
             isTablet ? 24 : 20,
@@ -52,18 +55,29 @@ class WorkflowScreenShell extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 10, child: leftPanel),
+                  leftPanel != null
+                      ? Expanded(flex: 10, child: leftPanel!)
+                      : const SizedBox(),
                   const SizedBox(width: 24),
                   Expanded(flex: 12, child: rightPanel),
                 ],
               )
             else
-              Column(children: [rightPanel, leftPanel]),
+              Column(
+                children: [
+                  rightPanel,
+                  if (leftPanel != null) leftPanel! else const SizedBox(),
+                ],
+              ),
             const SizedBox(height: 8),
             primaryAction,
             if (result != null) ...[const SizedBox(height: 18), result!],
           ],
         );
+        if (onRefresh == null) {
+          return content;
+        }
+        return RefreshIndicator(onRefresh: onRefresh!, child: content);
       },
     );
   }

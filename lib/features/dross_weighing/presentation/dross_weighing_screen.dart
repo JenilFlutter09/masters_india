@@ -38,6 +38,7 @@ class DrossWeighingScreen extends GetView<DrossWeighingController> {
               title: 'Dross Inward',
               subtitle:
                   'Monitor live weight on the left and map the inward record to the correct line and dross type on the right.',
+              onRefresh: controller.refreshScreen,
               topWidgets: [
                 if (controller.errorMessage.value != null)
                   StatusBanner(
@@ -64,16 +65,10 @@ class DrossWeighingScreen extends GetView<DrossWeighingController> {
                 tareWeightController: controller.tareWeightController,
                 onCaptureGross: controller.captureGrossWeight,
                 onCaptureTare: controller.captureTareWeight,
-                grossValidator: (value) =>
-                    controller.validateRequiredWeightValue(
-                      value,
-                      'Gross weight',
-                    ),
-                tareValidator: (value) =>
-                    controller.validateOptionalWeightValue(
-                      value,
-                      'Tare weight',
-                    ),
+                grossValidator: (value) => controller
+                    .validateRequiredWeightValue(value, 'Gross weight'),
+                tareValidator: (value) => controller
+                    .validateOptionalWeightValue(value, 'Tare weight'),
               ),
               rightPanel: SectionCard(
                 title: 'Classification Details',

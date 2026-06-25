@@ -6,10 +6,9 @@ abstract final class AppRoutes {
   static const scrapWeighing = '/scrap-weighing';
   static const drossWeighing = '/dross-weighing';
   static const lineOutput = '/line-output';
+  static const dispatch = '/dispatch';
   static const motherCoilDispatch = '/mother-coil-dispatch';
   static const babyInward = '/baby-inward';
   static const babyProductDispatch = '/baby-product-dispatch';
-  static const scrapGeneration = '/scrap-generation';
-  static const drossOutward = '/dross-outward';
   static const settings = '/settings';
 }

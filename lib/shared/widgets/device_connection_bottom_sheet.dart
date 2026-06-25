@@ -248,7 +248,7 @@ class _DeviceConnectionSheet extends StatelessWidget {
                         onDisconnect: (isConnected && isSelected)
                             ? () async {
                                 final success = isScale
-                                    ? await endpoint.disconnect()
+                                    ? await endpoint.disconnectAndForget()
                                     : await printerService.disconnectPrinter();
                                 if (!context.mounted) {
                                   return;

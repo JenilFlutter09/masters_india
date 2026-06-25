@@ -78,6 +78,12 @@ class BabyInwardController extends WorkflowFormController
     }
   }
 
+  @override
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+    await _loadLookups();
+  }
+
   String? validateText(String? value, String label) =>
       FormValidators.requiredField(value, label);
 
@@ -95,6 +101,9 @@ class BabyInwardController extends WorkflowFormController
     }
     return null;
   }
+
+  String? validateParameterValue(String? value, String parameter) =>
+      FormValidators.requiredField(value, parameter);
 
   bool _containsOption(List<MasterOption> options, int? value) {
     if (value == null || value <= 0) {
@@ -139,10 +148,7 @@ class BabyInwardController extends WorkflowFormController
   Map<String, String> buildParameterValues() {
     final values = <String, String>{};
     for (final key in parameterKeys) {
-      final value = parameterControllers[key]?.text.trim() ?? '';
-      if (value.isNotEmpty) {
-        values[key] = value;
-      }
+      values[key] = parameterControllers[key]?.text.trim() ?? '';
     }
     return values;
   }

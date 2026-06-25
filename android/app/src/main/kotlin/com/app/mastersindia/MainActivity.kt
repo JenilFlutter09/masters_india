@@ -14,10 +14,16 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : FlutterActivity() {
-    init {
-        System.loadLibrary("ConfigFileINI")
-        System.loadLibrary("SimpleLogModule")
-        System.loadLibrary("LabelPrinterSDK")
+    companion object {
+        private var printerSdkLoaded = false
+
+        private fun ensurePrinterSdkLoaded() {
+            if (printerSdkLoaded) return
+            System.loadLibrary("ConfigFileINI")
+            System.loadLibrary("SimpleLogModule")
+            System.loadLibrary("LabelPrinterSDK")
+            printerSdkLoaded = true
+        }
     }
 
     private val channelName = "label_printer"
@@ -27,8 +33,9 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
+            ensurePrinterSdkLoaded()
             printer = LabelPrinter()
-        } catch (error: Exception) {
+        } catch (error: Throwable) {
             Log.e("LabelPrinterSDK", "Failed to initialize printer SDK", error)
         }
     }
@@ -59,6 +66,7 @@ class MainActivity : FlutterActivity() {
 
         Thread {
             try {
+                ensurePrinterSdkLoaded()
                 if (printer == null) {
                     printer = LabelPrinter()
                 }
@@ -93,7 +101,7 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                 }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 postError(
                     result,
                     "CONNECTION_EXCEPTION",
@@ -106,6 +114,7 @@ class MainActivity : FlutterActivity() {
     private fun disconnectPrinter(result: MethodChannel.Result) {
         Thread {
             try {
+                ensurePrinterSdkLoaded()
                 val labelPrinter = printer
                 if (labelPrinter == null) {
                     mainHandler.post { result.success("Printer already disconnected") }
@@ -170,7 +179,7 @@ class MainActivity : FlutterActivity() {
                         ),
                     )
                 }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 mainHandler.post {
                     result.success(
                         mapOf(
@@ -191,6 +200,7 @@ class MainActivity : FlutterActivity() {
 
         Thread {
             try {
+                ensurePrinterSdkLoaded()
                 val labelPrinter = printer
                     ?: throw IllegalStateException("Printer is not connected.")
 
@@ -273,7 +283,7 @@ class MainActivity : FlutterActivity() {
                         )
                     }
                 }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 postError(
                     result,
                     "PRINT_EXCEPTION",

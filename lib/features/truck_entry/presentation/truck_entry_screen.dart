@@ -35,6 +35,7 @@ class TruckEntryScreen extends GetView<TruckEntryController> {
               title: 'Raw Material Inward',
               subtitle:
                   'Use the left station for live scale capture and complete supplier, material, and truck details on the right.',
+              onRefresh: controller.refreshScreen,
               topWidgets: [
                 if (controller.errorMessage.value != null)
                   StatusBanner(
@@ -58,16 +59,10 @@ class TruckEntryScreen extends GetView<TruckEntryController> {
                 tareWeightController: controller.tareWeightController,
                 onCaptureGross: controller.captureGrossWeight,
                 onCaptureTare: controller.captureTareWeight,
-                grossValidator: (value) =>
-                    controller.validateRequiredWeightValue(
-                      value,
-                      'Gross weight',
-                    ),
-                tareValidator: (value) =>
-                    controller.validateOptionalWeightValue(
-                      value,
-                      'Tare weight',
-                    ),
+                grossValidator: (value) => controller
+                    .validateRequiredWeightValue(value, 'Gross weight'),
+                tareValidator: (value) => controller
+                    .validateOptionalWeightValue(value, 'Tare weight'),
               ),
               rightPanel: SectionCard(
                 title: 'Entry Details',

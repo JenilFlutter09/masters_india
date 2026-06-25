@@ -54,8 +54,8 @@ class StorageService {
     // }
     // return stored;
     return 'https://mastersindia.punitinstrument.com/api/v1';
-   // return 'http://127.0.0.1:8000/api/v1';
-   // return 'http://192.168.0.108:8000/api/v1';
+    // return 'http://127.0.0.1:8000/api/v1';
+    // return 'http://192.168.0.108:8000/api/v1';
   }
 
   Future<void> saveBaseUrl(String value) => _write(_baseUrlKey, value.trim());
@@ -92,9 +92,19 @@ class StorageService {
     await _write(_scaleNameKey, name);
   }
 
+  Future<void> clearScaleSelection() async {
+    await _remove(_scaleAddressKey);
+    await _remove(_scaleNameKey);
+  }
+
   Future<void> savePrinterSelection({String? address, String? name}) async {
     await _write(_printerAddressKey, address);
     await _write(_printerNameKey, name);
+  }
+
+  Future<void> clearPrinterSelection() async {
+    await _remove(_printerAddressKey);
+    await _remove(_printerNameKey);
   }
 
   Future<void> clearSession() async {

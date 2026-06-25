@@ -100,7 +100,7 @@ class AppDrawer extends StatelessWidget {
                         if (scaleService.isScaleConnected) {
                           await bluetoothService
                               .endpoint(DeviceRole.scale)
-                              .disconnect();
+                              .disconnectAndForget();
                         } else {
                           await showScaleConnectionSheet(context);
                         }
@@ -356,29 +356,14 @@ const _drawerItems = [
     AppRoutes.lineOutput,
   ),
   _DrawerDestination(
-    'Mother Coil Dispatch',
+    'Dispatch',
     Icons.inventory_2_outlined,
-    AppRoutes.motherCoilDispatch,
+    AppRoutes.dispatch,
   ),
   _DrawerDestination(
     'Baby Inward',
     Icons.widgets_outlined,
     AppRoutes.babyInward,
-  ),
-  _DrawerDestination(
-    'Baby Product Dispatch',
-    Icons.sell_outlined,
-    AppRoutes.babyProductDispatch,
-  ),
-  _DrawerDestination(
-    'Scrap Generation',
-    Icons.recycling_outlined,
-    AppRoutes.scrapGeneration,
-  ),
-  _DrawerDestination(
-    'Dross Outward',
-    Icons.outbox_outlined,
-    AppRoutes.drossOutward,
   ),
   _DrawerDestination('Settings', Icons.settings_outlined, AppRoutes.settings),
 ];

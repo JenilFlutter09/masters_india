@@ -36,6 +36,7 @@ class LineOutputScreen extends GetView<LineOutputController> {
               title: 'Furnace Output',
               subtitle:
                   'Capture mother coil inward from production line output by selecting the exact line, alloy, product, and gross/tare weights required by the furnace-output API.',
+              onRefresh: controller.refreshScreen,
               topWidgets: [
                 if (controller.errorMessage.value != null)
                   StatusBanner(
@@ -62,16 +63,10 @@ class LineOutputScreen extends GetView<LineOutputController> {
                 tareWeightController: controller.tareWeightController,
                 onCaptureGross: controller.captureGrossWeight,
                 onCaptureTare: controller.captureTareWeight,
-                grossValidator: (value) =>
-                    controller.validateRequiredWeightValue(
-                      value,
-                      'Gross weight',
-                    ),
-                tareValidator: (value) =>
-                    controller.validateOptionalWeightValue(
-                      value,
-                      'Tare weight',
-                    ),
+                grossValidator: (value) => controller
+                    .validateRequiredWeightValue(value, 'Gross weight'),
+                tareValidator: (value) => controller
+                    .validateOptionalWeightValue(value, 'Tare weight'),
               ),
               rightPanel: SectionCard(
                 title: 'Output Details',

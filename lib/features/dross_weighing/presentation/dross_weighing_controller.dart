@@ -51,6 +51,12 @@ class DrossWeighingController extends WorkflowFormController
     }
   }
 
+  @override
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+    await _loadLookups();
+  }
+
   String? validateText(String? value, String label) =>
       FormValidators.requiredField(value, label);
 

@@ -37,18 +37,29 @@ class DashboardController extends GetxController {
   }
 
   Future<void> refreshInventory() async {
+    if (isLoading.value) {
+      return;
+    }
     isLoading.value = true;
     errorMessage.value = null;
     try {
       final snapshot = await _inventoryRepository.fetchInventorySummary();
+      if (isClosed) {
+        return;
+      }
       _inventoryCacheService.update(
         summaryData: snapshot.balances,
         transactions: snapshot.recentTransactions,
       );
     } catch (error) {
+      if (isClosed) {
+        return;
+      }
       errorMessage.value = error.toString();
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 

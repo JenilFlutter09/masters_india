@@ -38,6 +38,10 @@ class LoginController extends GetxController {
     }
   }
 
+  Future<void> refreshScreen() async {
+    errorMessage.value = null;
+  }
+
   @override
   void onClose() {
     emailController.dispose();

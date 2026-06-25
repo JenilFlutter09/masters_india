@@ -41,6 +41,7 @@ class TruckExitScreen extends GetView<TruckExitController> {
                 title: 'Outbound Weighbridge',
                 subtitle:
                     'Use one common weighbridge screen for finished-goods dispatch and empty truck release, while keeping gross and tare capture consistent on the left.',
+                onRefresh: controller.refreshScreen,
                 topWidgets: [
                   Container(
                     decoration: BoxDecoration(
@@ -80,16 +81,10 @@ class TruckExitScreen extends GetView<TruckExitController> {
                   tareWeightController: controller.tareWeightController,
                   onCaptureGross: controller.captureGrossWeight,
                   onCaptureTare: controller.captureTareWeight,
-                  grossValidator: (value) =>
-                      controller.validateRequiredWeightValue(
-                        value,
-                        'Gross weight',
-                      ),
-                  tareValidator: (value) =>
-                      controller.validateOptionalWeightValue(
-                        value,
-                        'Tare weight',
-                      ),
+                  grossValidator: (value) => controller
+                      .validateRequiredWeightValue(value, 'Gross weight'),
+                  tareValidator: (value) => controller
+                      .validateOptionalWeightValue(value, 'Tare weight'),
                 ),
                 rightPanel: SectionCard(
                   title: controller.exitTitle,
